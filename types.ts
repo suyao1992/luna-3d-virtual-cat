@@ -19,7 +19,7 @@ export type CatAction =
   'sleeping' | 'using_litter' | 'petting' | 'poked' | 
   'waking_up' | 'stretching' | 'grooming' | 'scratching' |
   'playing_ball' | 'singing' | 'dancing' | 'playing_gomoku' |
-  'playing_xiangqi' | 'preparing_game' | 'yoga' | 'fishing';
+  'playing_xiangqi' | 'preparing_game' | 'yoga' | 'fishing' | 'climbing';
 
 export enum CatMood {
   HAPPY = 'Happy',
@@ -33,9 +33,15 @@ export type Language = 'en' | 'zh' | 'jp';
 
 export const TRANSLATIONS = {
   en: {
+    start_menu: {
+        title: "LUNA",
+        subtitle: "Your Virtual 3D Companion",
+        start: "Start Game",
+        credits: "Powered by Gemini AI"
+    },
     stats: { food: 'Food', water: 'Water', clean: 'Clean', love: 'Love', sleep: 'Sleep' },
     actions: { feed: 'Feed', water: 'Water', clean: 'Clean', play: 'Play', sleep: 'Sleep', game: 'Game' },
-    play_menu: { sing: 'Sing', dance: 'Dance', yoga: 'Yoga', fish: 'Fish', chase: 'Chase' },
+    play_menu: { sing: 'Sing', dance: 'Dance', yoga: 'Yoga', fish: 'Fish', climb: 'Climb' },
     game_menu: { gomoku: 'Gomoku', xiangqi: 'Xiangqi' },
     status: {
       eating: "Crunch crunch... 🐟",
@@ -58,8 +64,19 @@ export const TRANSLATIONS = {
       preparing_game: "Setting up the board... 🎲",
       yoga: "Finding inner peace... 🧘‍♀️",
       fishing: "Waiting for a bite... 🐟",
+      climbing: "King of the castle! 🏰",
       thinking: "Luna is thinking...",
       idle: "Meow?"
+    },
+    loading: {
+        title: "Loading...",
+        tips: [
+            "Polishing the chess pieces...",
+            "Reviewing strategy books...",
+            "Stretching paws for victory...",
+            "Calculating winning moves...",
+            "Asking the Great Cat in the sky for luck..."
+        ]
     },
     chat: {
       placeholder: "Say hi to Luna...",
@@ -85,9 +102,15 @@ export const TRANSLATIONS = {
     }
   },
   zh: {
+    start_menu: {
+        title: "LUNA",
+        subtitle: "你的 3D 虚拟伴侣",
+        start: "开始游戏",
+        credits: "Powered by Gemini AI"
+    },
     stats: { food: '饥饿', water: '口渴', clean: '卫生', love: '心情', sleep: '体力' },
     actions: { feed: '喂食', water: '喂水', clean: '铲屎', play: '玩耍', sleep: '睡觉', game: '游戏' },
-    play_menu: { sing: '唱歌', dance: '跳舞', yoga: '瑜伽', fish: '钓鱼', chase: '追逐' },
+    play_menu: { sing: '唱歌', dance: '跳舞', yoga: '瑜伽', fish: '钓鱼', climb: '爬架子' },
     game_menu: { gomoku: '五子棋', xiangqi: '中国象棋' },
     status: {
       eating: "嚼嚼嚼... 🐟",
@@ -110,8 +133,19 @@ export const TRANSLATIONS = {
       preparing_game: "准备棋盘中... 🎲",
       yoga: "寻找内心的平静... 🧘‍♀️",
       fishing: "等待鱼儿上钩... 🐟",
+      climbing: "我是城堡之王! 🏰",
       thinking: "Luna 正在思考...",
       idle: "喵?"
+    },
+    loading: {
+        title: "加载中...",
+        tips: [
+            "正在擦拭棋子...",
+            "正在复习棋谱...",
+            "伸展爪子准备应战...",
+            "正在计算必胜法...",
+            "正在祈求猫猫神的庇佑..."
+        ]
     },
     chat: {
       placeholder: "和 Luna 打个招呼...",
@@ -137,9 +171,15 @@ export const TRANSLATIONS = {
     }
   },
   jp: {
+    start_menu: {
+        title: "LUNA",
+        subtitle: "あなたの3Dバーチャルパートナー",
+        start: "ゲーム開始",
+        credits: "Powered by Gemini AI"
+    },
     stats: { food: '食事', water: '水分', clean: '清潔', love: '機嫌', sleep: '元気' },
     actions: { feed: 'ご飯', water: 'お水', clean: '掃除', play: '遊ぶ', sleep: '寝る', game: 'ゲーム' },
-    play_menu: { sing: '歌う', dance: '踊る', yoga: 'ヨガ', fish: '釣り', chase: '追いかけっこ' },
+    play_menu: { sing: '歌う', dance: '踊る', yoga: 'ヨガ', fish: '釣り', climb: '登る' },
     game_menu: { gomoku: '五目並べ', xiangqi: 'シャンチー (中国将棋)' },
     status: {
       eating: "モグモグ... 🐟",
@@ -162,8 +202,19 @@ export const TRANSLATIONS = {
       preparing_game: "準備中... 🎲",
       yoga: "心の平穏... 🧘‍♀️",
       fishing: "魚釣り中... 🐟",
+      climbing: "お城の王様だ! 🏰",
       thinking: "Luna は考え中...",
       idle: "ニャー?"
+    },
+    loading: {
+        title: "ロード中...",
+        tips: [
+            "駒を磨いています...",
+            "定石を復習中...",
+            "爪を伸ばして準備運動...",
+            "勝ち手を計算中...",
+            "猫神様にお祈り中..."
+        ]
     },
     chat: {
       placeholder: "Lunaに挨拶する...",

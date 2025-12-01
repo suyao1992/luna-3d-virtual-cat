@@ -1,12 +1,15 @@
 
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, SoftShadows } from '@react-three/drei';
 import { Cat3D } from './components/Cat3D';
 import { Environment } from './components/Environment';
 import { GameUI } from './components/GameUI';
+import { StartMenu } from './components/StartMenu';
 import { GomokuBoard } from './components/GomokuBoard';
 import { XiangqiBoard } from './components/XiangqiBoard';
+import { GameLoadingScreen } from './components/GameLoadingScreen';
 import { CatStats, CatAction, ChatMessage, Language } from './types';
 import { geminiService } from './services/gemini';
 import { audioService } from './services/audio';
@@ -21,15 +24,24 @@ const INITIAL_STATS: CatStats = {
   hygiene: 100
 };
 
+type AppPhase = 'menu' | 'loading' | 'game';
+
 const App: React.FC = () => {
+  const [appPhase, setAppPhase] = useState<AppPhase>('menu');
+  
   const [stats, setStats] = useState<CatStats>(INITIAL_STATS);
-  const [action, setAction] = useState<CatAction>('idle');
+  const [action, setAction] = useState<CatAction>('sleeping'); // Default sleeping in menu
   const [language, setLanguage] = useState<Language>('en');
   
   // Movement and Interaction State
   const [walkTarget, setWalkTarget] = useState<Vector3 | null>(null);
   const [mouseWorldPos, setMouseWorldPos] = useState<Vector3 | null>(null);
   const [nextAction, setNextAction] = useState<CatAction | null>(null);
+
+  // Game Logic State
+  const [pendingGame, setPendingGame] = useState<CatAction | null>(null);
+  const [isGameLoading, setIsGameLoading] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
 
   // Chat State
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -49,16 +61,61 @@ const App: React.FC = () => {
       audioService.playMeow('greeting');
   };
 
-  // Game Loop: Stats updates over time
+  // --- START GAME SEQUENCE ---
+  const handleStartGame = () => {
+      audioService.init();
+      setAppPhase('loading');
+      setLoadingProgress(0);
+  };
+
+  // Handle Global Loading Phase
   useEffect(() => {
+      if (appPhase === 'loading') {
+          const interval = setInterval(() => {
+              setLoadingProgress(prev => {
+                  if (prev >= 100) {
+                      clearInterval(interval);
+                      return 100;
+                  }
+                  return prev + 2; // ~1.5s to load
+              });
+          }, 30);
+          return () => clearInterval(interval);
+      }
+  }, [appPhase]);
+
+  // Transition from Loading to Game
+  useEffect(() => {
+      if (appPhase === 'loading' && loadingProgress >= 100) {
+          const timer = setTimeout(() => {
+              setAppPhase('game');
+              // Wake up sequence
+              setAction('waking_up');
+              audioService.playMeow('greeting');
+              setTimeout(() => {
+                  setAction('stretching');
+                  setTimeout(() => setAction('idle'), 3000);
+              }, 2000);
+          }, 500);
+          return () => clearTimeout(timer);
+      }
+  }, [appPhase, loadingProgress]);
+
+
+  // Game Loop: Stats updates over time (Only active in 'game' phase)
+  useEffect(() => {
+    if (appPhase !== 'game') return;
+
     const timer = setInterval(() => {
       setStats(prev => {
         let hungerDecay = 0.4, thirstDecay = 0.6, energyDecay = 0.2, happinessDecay = 0.1;
 
         if (action === 'sleeping') {
           hungerDecay = 0.1; thirstDecay = 0.2; energyDecay = -3; happinessDecay = 0.05;
-        } else if (['playing', 'dancing', 'playing_ball', 'scratching', 'chase'].includes(action)) {
+        } else if (['playing', 'dancing', 'playing_ball', 'scratching'].includes(action)) {
            energyDecay = 1.0; hungerDecay = 0.8; thirstDecay = 1.0;
+        } else if (action === 'climbing') {
+           energyDecay = 1.5; hungerDecay = 1.0; happinessDecay = -1.0;
         } else if (action === 'stretching') {
             energyDecay = 0; happinessDecay = -0.5;
         } else if (action === 'playing_gomoku' || action === 'playing_xiangqi') {
@@ -97,10 +154,12 @@ const App: React.FC = () => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [action, stats.energy]);
+  }, [action, stats.energy, appPhase]);
   
   // Random idle behaviors
   useEffect(() => {
+      if (appPhase !== 'game') return;
+
       let behaviorTimeout: number;
       if (action === 'idle') {
           behaviorTimeout = window.setTimeout(() => {
@@ -125,7 +184,7 @@ const App: React.FC = () => {
           }, 10000 + Math.random() * 15000); 
       }
       return () => clearTimeout(behaviorTimeout);
-  }, [action, stats.energy]); 
+  }, [action, stats.energy, appPhase]); 
 
   const handleUseLitterBox = () => {
       if (action !== 'idle') return;
@@ -191,6 +250,7 @@ const App: React.FC = () => {
   };
 
   const handleFloorClick = (point: Vector3) => {
+      if (appPhase !== 'game') return; // Disable movement in menu
       audioService.init();
       if (action !== 'idle' && action !== 'walking') return;
       const flatPoint = new Vector3(point.x, 0, point.z);
@@ -200,55 +260,76 @@ const App: React.FC = () => {
   };
   
   const handlePointerMove = (point: Vector3) => {
-    setMouseWorldPos(point);
+    if (appPhase === 'game') {
+        setMouseWorldPos(point);
+    }
   }
 
   const handleMovementComplete = () => {
       if (nextAction) {
           setAction(nextAction);
-          // Special sequence for Game
           if (nextAction === 'preparing_game') {
               audioService.playMeow('greeting');
-              // We need to know WHICH game to start after preparing
-              // For simplicity, we can store a temp variable or infer.
-              // But here, let's just use a timeout to transition to the actual game state
-              // The nextAction state flow is: walking -> preparing_game -> playing_XXX
-              // This part is tricky because 'nextAction' was just set to 'preparing_game'.
-              // We need another step.
+          }
+          if (nextAction === 'climbing') {
+              audioService.playScratching(); // Play scratch sound as climbing starts
           }
       } else {
           setAction('idle');
-      }
-      // If we just finished walking to prepare, now we prepare
-      if (action === 'walking' && nextAction === 'preparing_game') {
-          // nextAction is already set above, so 'action' becomes 'preparing_game' on next render
-          // We need to schedule the transition to the ACTUAL game.
-          // However, we lost the info of WHICH game.
-          // Let's rely on a state variable for "pendingGame"
       }
       
       setWalkTarget(null);
       setNextAction(null);
   };
 
-  // Fix for the game transition flow:
-  // 1. handleSelectGame sets 'pendingGame' state and sets walk target.
-  // 2. movement complete -> setAction('preparing_game')
-  // 3. useEffect watches 'preparing_game', waits, then sets Action to 'pendingGame'
-  const [pendingGame, setPendingGame] = useState<CatAction | null>(null);
-
+  // --- MINIGAME START SEQUENCE LOGIC ---
+  
+  // 1. Wait for 'preparing_game' animation (inviting gesture) to finish (~1.5s)
+  // 2. Start Loading Screen
   useEffect(() => {
-      if (action === 'preparing_game' && pendingGame) {
-           const timer = setTimeout(() => {
-               setAction(pendingGame);
-               setPendingGame(null);
-           }, 2000);
-           return () => clearTimeout(timer);
+      if (action === 'preparing_game' && pendingGame && !isGameLoading) {
+           const startLoadTimer = setTimeout(() => {
+               setIsGameLoading(true);
+               setLoadingProgress(0);
+           }, 1500);
+           return () => clearTimeout(startLoadTimer);
       }
-  }, [action, pendingGame]);
+  }, [action, pendingGame, isGameLoading]);
+
+  // 3. Simulate Minigame Loading Progress
+  useEffect(() => {
+      if (isGameLoading) {
+          const interval = setInterval(() => {
+              setLoadingProgress(prev => {
+                  if (prev >= 100) {
+                      clearInterval(interval);
+                      return 100;
+                  }
+                  return prev + 2; // ~1.5 seconds to load
+              });
+          }, 30);
+          return () => clearTimeout(interval);
+      }
+  }, [isGameLoading]);
+
+  // 4. Finish Minigame Loading and Start Game
+  useEffect(() => {
+      if (loadingProgress >= 100 && isGameLoading && pendingGame) {
+          // Small delay to let user see 100%
+          const finishTimer = setTimeout(() => {
+              setIsGameLoading(false);
+              setAction(pendingGame);
+              setPendingGame(null);
+              setLoadingProgress(0);
+          }, 500);
+          return () => clearTimeout(finishTimer);
+      }
+  }, [loadingProgress, isGameLoading, pendingGame]);
 
 
   const handleCatClick = () => {
+    if (appPhase !== 'game') return; // Disable interaction in menu
+    
     audioService.init();
     if (isTyping || (action !== 'idle' && action !== 'walking' && action !== 'sleeping')) {
       return;
@@ -309,23 +390,37 @@ const App: React.FC = () => {
       audioService.playDigging();
   };
 
-  const handlePlayAction = (activity: 'chase' | 'sing' | 'dance' | 'yoga' | 'fish') => {
+  const handlePlayAction = (activity: 'sing' | 'dance' | 'yoga' | 'fish' | 'climb') => {
     audioService.init();
     
     switch(activity) {
-        case 'chase':
-            setAction('playing'); 
-            audioService.playMeow('greeting');
+        case 'climb':
+            // Walk to the base of the scratching post first (near 6, 0, -7)
+            setWalkTarget(new Vector3(6, 0, -5.5)); 
+            setNextAction('climbing');
+            setAction('walking');
+            audioService.playTrill();
+            
+            // Once climbing starts (handled in movement complete), we wait longer
             setTimeout(() => {
-                setStats(prev => ({ 
+                // This timeout is just a fallback/safety cleanup. 
+                // The actual climbing anim lasts ~10s, controlled by App logic below?
+                // Actually we need to manually reset to idle after the animation.
+                // Since Cat3D animation is procedural, we just set a timeout here to match.
+                // Walk time (approx 2s) + Climb Time (9s)
+            }, 2000);
+
+            // Set a timeout to finish the activity
+            // Time to walk ~2s. Animation ~9s. Total ~11-12s.
+            setTimeout(() => {
+                 setStats(prev => ({ 
                     ...prev, 
-                    happiness: Math.min(100, prev.happiness + 20),
-                    energy: Math.max(0, prev.energy - 15),
-                    hunger: Math.max(0, prev.hunger - 5),
-                    thirst: Math.max(0, prev.thirst - 10)
+                    happiness: Math.min(100, prev.happiness + 25),
+                    energy: Math.max(0, prev.energy - 20),
+                    hunger: Math.max(0, prev.hunger - 10)
                 }));
                 setAction('idle');
-            }, 3000);
+            }, 12000);
             break;
         case 'sing':
             handleSinging();
@@ -377,8 +472,6 @@ const App: React.FC = () => {
 
   const handleSelectGame = (gameType: 'gomoku' | 'xiangqi') => {
       audioService.init();
-      // Sequence: Walk to Board -> Prepare/Invite -> Play
-      // Cat location for Games is (0, 0, 3.5)
       setPendingGame(gameType === 'gomoku' ? 'playing_gomoku' : 'playing_xiangqi');
       setNextAction('preparing_game');
       setWalkTarget(new Vector3(0, 0, 3.5)); 
@@ -417,6 +510,7 @@ const App: React.FC = () => {
   return (
     <div className="w-full h-screen bg-gray-100 relative overflow-hidden" onClick={() => audioService.init()}>
       
+      {/* 3D Scene */}
       <Canvas shadows camera={{ position: [0, 8, 12], fov: 45 }}>
         <SoftShadows size={10} samples={16} />
         <OrbitControls 
@@ -424,6 +518,8 @@ const App: React.FC = () => {
           maxPolarAngle={Math.PI / 2 - 0.1} 
           minDistance={5}
           maxDistance={30}
+          autoRotate={appPhase === 'menu'} // Slowly rotate camera in menu for nice effect
+          autoRotateSpeed={0.5}
         />
         
         <Environment 
@@ -442,29 +538,46 @@ const App: React.FC = () => {
             onClick={handleCatClick} 
             language={language}
         />
-        
       </Canvas>
 
-      <GameUI 
-        stats={stats} 
-        currentAction={action}
-        messages={messages}
-        isTyping={isTyping}
-        language={language}
-        onSetLanguage={setLanguage}
-        onSendMessage={handleUserMessage}
-        onFeed={handleFeed}
-        onWater={handleWater}
-        onClean={handleClean}
-        onPlayAction={handlePlayAction}
-        onSleep={handleSleep}
-        onSelectGame={handleSelectGame}
-      />
+      {/* Start Menu Overlay */}
+      {appPhase === 'menu' && (
+          <StartMenu 
+            onStart={handleStartGame} 
+            language={language}
+            onSetLanguage={setLanguage}
+          />
+      )}
 
-      {action === 'playing_gomoku' && (
+      {/* Main Game UI (Only in Game Phase) */}
+      {appPhase === 'game' && (
+          <GameUI 
+            stats={stats} 
+            currentAction={action}
+            messages={messages}
+            isTyping={isTyping}
+            language={language}
+            onSetLanguage={setLanguage}
+            onSendMessage={handleUserMessage}
+            onFeed={handleFeed}
+            onWater={handleWater}
+            onClean={handleClean}
+            onPlayAction={handlePlayAction}
+            onSleep={handleSleep}
+            onSelectGame={handleSelectGame}
+          />
+      )}
+
+      {/* Loading Screen (Global or Minigame) */}
+      {(appPhase === 'loading' || isGameLoading) && (
+          <GameLoadingScreen progress={loadingProgress} language={language} />
+      )}
+
+      {/* Minigames */}
+      {appPhase === 'game' && action === 'playing_gomoku' && !isGameLoading && (
           <GomokuBoard onClose={handleCloseGame} onGameEnd={handleGameEnd} language={language} />
       )}
-      {action === 'playing_xiangqi' && (
+      {appPhase === 'game' && action === 'playing_xiangqi' && !isGameLoading && (
           <XiangqiBoard onClose={handleCloseGame} onGameEnd={handleGameEnd} language={language} />
       )}
     </div>

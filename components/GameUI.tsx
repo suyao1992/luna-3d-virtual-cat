@@ -1,7 +1,8 @@
 
+
 import React, { useState, useEffect, useRef } from 'react';
 import { CatStats, ChatMessage, CatAction, Language, TRANSLATIONS } from '../types';
-import { Heart, Zap, Fish, Send, MessageCircle, Droplets, Trash2, Sparkles, Grid3X3, Music, Video, ShipWheel, Disc, Mic, Activity, X } from 'lucide-react';
+import { Heart, Zap, Fish, Send, MessageCircle, Droplets, Trash2, Sparkles, Grid3X3, Music, ShipWheel, Mic, Activity, X, TrendingUp } from 'lucide-react';
 
 interface GameUIProps {
   stats: CatStats;
@@ -14,7 +15,7 @@ interface GameUIProps {
   onFeed: () => void;
   onWater: () => void;
   onClean: () => void;
-  onPlayAction: (actionType: 'chase' | 'sing' | 'dance' | 'yoga' | 'fish') => void;
+  onPlayAction: (actionType: 'sing' | 'dance' | 'yoga' | 'fish' | 'climb') => void;
   onSleep: () => void;
   onSelectGame: (gameType: 'gomoku' | 'xiangqi') => void;
 }
@@ -199,11 +200,11 @@ export const GameUI: React.FC<GameUIProps> = ({
                     </div>
                     <span className="text-xs font-bold text-gray-600">{t.play_menu.fish}</span>
                 </button>
-                <button onClick={() => onPlayAction('chase')} className="flex flex-col items-center gap-1 group">
+                <button onClick={() => onPlayAction('climb')} className="flex flex-col items-center gap-1 group">
                     <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center group-hover:bg-orange-200 transition-colors shadow-sm">
-                        <Disc className="w-6 h-6 text-orange-600" />
+                        <TrendingUp className="w-6 h-6 text-orange-600" />
                     </div>
-                    <span className="text-xs font-bold text-gray-600">{t.play_menu.chase}</span>
+                    <span className="text-xs font-bold text-gray-600">{t.play_menu.climb}</span>
                 </button>
                 <div className="w-px bg-gray-300 mx-1"></div>
                  <button onClick={() => setShowPlayMenu(false)} className="flex flex-col items-center justify-center gap-1 group text-gray-400 hover:text-gray-600">

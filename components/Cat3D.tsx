@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
@@ -43,6 +42,7 @@ export const Cat3D: React.FC<Cat3DProps> = ({ action, position = [0, 0, 0], walk
   const [time, setTime] = useState(0);
   const [hovered, setHovered] = useState(false);
   const [blink, setBlink] = useState(false);
+  const actionTimeRef = useRef(0);
   
   const restingPosition = useRef<Vector3>(new Vector3(...position));
   const t = TRANSLATIONS[language];
@@ -68,6 +68,7 @@ export const Cat3D: React.FC<Cat3DProps> = ({ action, position = [0, 0, 0], walk
       fishing: new Vector3(0, 0, 4),
       singing: new Vector3(0, 0, 0),
       dancing: new Vector3(0, 0, 0),
+      climbing: new Vector3(6, 0, -7), // Base of scratching post
   };
 
   useEffect(() => {
@@ -75,12 +76,15 @@ export const Cat3D: React.FC<Cat3DProps> = ({ action, position = [0, 0, 0], walk
           restingPosition.current.copy(groupRef.current.position);
           restingPosition.current.y = 0;
       }
+      actionTimeRef.current = 0; // Reset local action timer
   }, [action]);
 
   useFrame((state, delta) => {
     if (!groupRef.current) return;
     setTime((t) => t + delta);
+    actionTimeRef.current += delta;
     const t = state.clock.getElapsedTime();
+    const actionT = actionTimeRef.current;
 
     // --- BLINKING ---
     if (action !== 'sleeping' && Math.random() < 0.005) {
@@ -106,7 +110,8 @@ export const Cat3D: React.FC<Cat3DProps> = ({ action, position = [0, 0, 0], walk
     const distanceToTarget = Math.sqrt(dx * dx + dz * dz);
     let isMoving = false;
 
-    if (action === 'walking' || ACTION_LOCATIONS[action]) {
+    // Don't move X/Z if climbing (we handle position manually in overrides)
+    if ((action === 'walking' || ACTION_LOCATIONS[action]) && action !== 'climbing') {
         if (distanceToTarget > 0.1) {
              isMoving = true;
              const factor = Math.min(1, moveSpeed / distanceToTarget);
@@ -138,6 +143,11 @@ export const Cat3D: React.FC<Cat3DProps> = ({ action, position = [0, 0, 0], walk
                  groupRef.current.rotation.y = lerpAngle(groupRef.current.rotation.y, targetRotY, 0.1);
             }
         }
+    } else if (action === 'climbing') {
+        // Just force rotation to look at the pole (roughly towards -Z)
+        groupRef.current.position.x = ACTION_LOCATIONS['climbing'].x;
+        groupRef.current.position.z = ACTION_LOCATIONS['climbing'].z;
+        groupRef.current.rotation.y = lerpAngle(groupRef.current.rotation.y, 0, 0.1);
     }
     
     // --- POSE SYSTEM ---
@@ -156,14 +166,15 @@ export const Cat3D: React.FC<Cat3DProps> = ({ action, position = [0, 0, 0], walk
     let tgtHeadPos = new Vector3(0, 0.65, 0.5);
     let tgtHeadRot = new Euler(0, 0, 0);
 
-    let tgtFLPos = new Vector3(-0.25, 0.2, 0.4);
+    // FIX: Raised default leg positions to 0.4 because pivot is now at top (shoulder/hip)
+    let tgtFLPos = new Vector3(-0.25, 0.4, 0.4);
     let tgtFLRot = new Euler(0, 0, 0);
-    let tgtFRPos = new Vector3(0.25, 0.2, 0.4);
+    let tgtFRPos = new Vector3(0.25, 0.4, 0.4);
     let tgtFRRot = new Euler(0, 0, 0);
     
-    let tgtBLPos = new Vector3(-0.25, 0.2, -0.4);
+    let tgtBLPos = new Vector3(-0.25, 0.4, -0.4);
     let tgtBLRot = new Euler(0, 0, 0);
-    let tgtBRPos = new Vector3(0.25, 0.2, -0.4);
+    let tgtBRPos = new Vector3(0.25, 0.4, -0.4);
     let tgtBRRot = new Euler(0, 0, 0);
 
     let tgtTailRot = new Euler(-0.5, 0, 0);
@@ -179,14 +190,14 @@ export const Cat3D: React.FC<Cat3DProps> = ({ action, position = [0, 0, 0], walk
         // Head on top
         tgtHeadPos.set(0, 1.15, 0.1);
         
-        // Back legs as feet (bottom)
-        tgtBLPos.set(-0.2, 0.2, 0);
-        tgtBRPos.set(0.2, 0.2, 0);
+        // Back legs as feet (bottom) - Pivot at hip
+        tgtBLPos.set(-0.2, 0.4, 0);
+        tgtBRPos.set(0.2, 0.4, 0);
         
-        // Front legs as arms (sides/up)
-        tgtFLPos.set(-0.35, 0.9, 0.2); // Shoulder height
+        // Front legs as arms (sides/up) - Pivot at shoulder
+        tgtFLPos.set(-0.35, 1.0, 0.2); // Shoulder height
         tgtFLRot.set(-0.5, 0, -0.5); // T-pose ish
-        tgtFRPos.set(0.35, 0.9, 0.2);
+        tgtFRPos.set(0.35, 1.0, 0.2);
         tgtFRRot.set(-0.5, 0, 0.5);
 
     } else if (mode === 2) {
@@ -199,21 +210,21 @@ export const Cat3D: React.FC<Cat3DProps> = ({ action, position = [0, 0, 0], walk
         tgtHeadPos.set(0, 0.9, 0.1);
 
         // Back legs splayed forward (sitting on bum)
-        tgtBLPos.set(-0.3, 0.1, 0.4);
+        tgtBLPos.set(-0.3, 0.15, 0.4);
         tgtBLRot.set(-Math.PI / 2, -0.2, 0); // Legs sticking out
-        tgtBRPos.set(0.3, 0.1, 0.4);
+        tgtBRPos.set(0.3, 0.15, 0.4);
         tgtBRRot.set(-Math.PI / 2, 0.2, 0);
 
         // Front legs as arms
-        tgtFLPos.set(-0.3, 0.65, 0.3);
+        tgtFLPos.set(-0.3, 0.75, 0.3);
         tgtFLRot.set(-1.0, 0, -0.2);
-        tgtFRPos.set(0.3, 0.65, 0.3);
+        tgtFRPos.set(0.3, 0.75, 0.3);
         tgtFRRot.set(-1.0, 0, 0.2);
     }
 
     // --- ANIMATION OVERRIDES ---
     
-    if (isMoving && mode === 0) {
+    if (isMoving && mode === 0 && action !== 'climbing') {
         // Walking Cycle
         const speed = 18;
         tgtBodyPos.y += Math.abs(Math.sin(t * speed * 2)) * 0.05;
@@ -223,45 +234,117 @@ export const Cat3D: React.FC<Cat3DProps> = ({ action, position = [0, 0, 0], walk
         tgtBLRot.x = Math.sin(t * speed + Math.PI) * 0.8;
         tgtBRRot.x = Math.sin(t * speed) * 0.8;
     } 
+    else if (action === 'climbing') {
+        // --- CLIMBING SEQUENCE ---
+        let climbOffset = 0;
+        
+        if (actionT < 1.0) {
+            // Prepare: Crouch low
+            tgtBodyPos.y = 0.3;
+            tgtHeadRot.x = -0.5; // Look up
+            
+            // Lower legs for crouch
+            tgtFLPos.y = 0.3; tgtFRPos.y = 0.3;
+            tgtBLPos.y = 0.3; tgtBRPos.y = 0.3;
+        } 
+        else if (actionT < 3.0) {
+            // Climb: Translate Up
+            const progress = (actionT - 1.0) / 2.0; // 0 to 1
+            climbOffset = progress * 2.6; // Go up to 2.6 height
+            
+            tgtBodyPos.y = 0.4 + climbOffset; 
+            tgtBodyRot.x = -Math.PI / 2; // Vertical body
+            
+            // Add offset to all parts to prevent splitting
+            tgtHeadPos.y += climbOffset;
+            tgtFLPos.y += climbOffset;
+            tgtFRPos.y += climbOffset;
+            tgtBLPos.y += climbOffset;
+            tgtBRPos.y += climbOffset;
+
+            // Wiggle legs
+            tgtFLRot.x = Math.sin(t * 20) * 1;
+            tgtFRRot.x = Math.cos(t * 20) * 1;
+            tgtBLRot.x = Math.sin(t * 20) * 1;
+            tgtBRRot.x = Math.cos(t * 20) * 1;
+        } 
+        else if (actionT < 8.0) {
+            // Perch: Sit on top
+            climbOffset = 2.6;
+            
+            // Set the Sitting High pose manually
+            tgtBodyPos.set(0, 0.45 + climbOffset, 0);
+            tgtBodyRot.set(-Math.PI / 2, 0, 0); 
+            
+            // Sitting legs
+            tgtBLPos.set(-0.3, 0.15 + climbOffset, 0.4); tgtBLRot.set(-Math.PI/2, -0.2, 0);
+            tgtBRPos.set(0.3, 0.15 + climbOffset, 0.4); tgtBRRot.set(-Math.PI/2, 0.2, 0);
+            
+            // Arms out like "I'm king"
+            tgtFLPos.set(-0.35, 0.75 + climbOffset, 0.3);
+            tgtFLRot.set(-0.5, 0, -0.5);
+            tgtFRPos.set(0.35, 0.75 + climbOffset, 0.3);
+            tgtFRRot.set(-0.5, 0, 0.5);
+            
+            tgtHeadPos.set(0, 0.9 + climbOffset, 0.1);
+            tgtHeadRot.y = Math.sin(t) * 0.5; // Look around
+        } 
+        else {
+            // Jump Down
+            const progress = (actionT - 8.0) / 1.0;
+            if (progress > 1) climbOffset = 0;
+            else climbOffset = 2.6 * (1 - progress);
+            
+            tgtBodyPos.y = 0.4 + climbOffset;
+            tgtBodyRot.x = 0.5; // Dive
+            
+            // Add offset to all parts
+            tgtHeadPos.y += climbOffset;
+            tgtFLPos.y += climbOffset;
+            tgtFRPos.y += climbOffset;
+            tgtBLPos.y += climbOffset;
+            tgtBRPos.y += climbOffset;
+        }
+    }
     else if (action === 'singing') {
-        tgtFRPos.set(0.1, 0.95, 0.4);
+        tgtFRPos.set(0.1, 1.05, 0.4);
         tgtFRRot.set(-1.5, -0.5, 0);
-        tgtFLPos.set(-0.4, 0.9 + Math.sin(t*5)*0.1, 0.2);
+        tgtFLPos.set(-0.4, 1.0 + Math.sin(t*5)*0.1, 0.2);
         tgtFLRot.set(Math.sin(t*5)*0.5, 0, -0.5);
         tgtBodyPos.y += Math.sin(t*10)*0.02;
         tgtHeadRot.z = Math.sin(t*3)*0.1;
     }
     else if (action === 'dancing') {
-        tgtFLPos.set(-0.4, 1.1, 0);
+        tgtFLPos.set(-0.4, 1.2, 0);
         tgtFLRot.set(0, 0, Math.sin(t*10)*0.5 + 2.5);
-        tgtFRPos.set(0.4, 0.8, 0.2);
+        tgtFRPos.set(0.4, 0.9, 0.2);
         tgtFRRot.set(Math.cos(t*10)*0.5, 0, -0.5);
         tgtBodyRot.z = Math.sin(t*8)*0.2;
     }
     else if (action === 'fishing') {
-        tgtFLPos.set(-0.15, 0.6, 0.5);
+        tgtFLPos.set(-0.15, 0.7, 0.5);
         tgtFLRot.set(-1.2, -0.5, 0);
-        tgtFRPos.set(0.15, 0.6, 0.5);
+        tgtFRPos.set(0.15, 0.7, 0.5);
         tgtFRRot.set(-1.2, 0.5, 0);
         tgtHeadRot.y = Math.sin(t*0.5)*0.1;
     }
     else if (action === 'yoga') {
-        tgtFLPos.set(-0.3, 0.55, 0.3);
+        tgtFLPos.set(-0.3, 0.65, 0.3);
         tgtFLRot.set(-0.5, 0, -0.5);
-        tgtFRPos.set(0.3, 0.55, 0.3);
+        tgtFRPos.set(0.3, 0.65, 0.3);
         tgtFRRot.set(-0.5, 0, 0.5);
         tgtBodyPos.y += Math.sin(t*2)*0.01;
         tgtHeadRot.x = 0.2;
     }
     else if (action === 'playing_gomoku' || action === 'playing_xiangqi') {
         // Thinking pose - staring at where the board is (Z+ relative to cat)
-        tgtFRPos.set(0.2, 0.75, 0.4);
+        tgtFRPos.set(0.2, 0.85, 0.4);
         tgtFRRot.set(-2, 0, 0.5); // Hand to chin
         tgtHeadRot.x = 0.3; // Look down
     }
     else if (action === 'preparing_game') {
         // Standing and inviting
-        tgtFRPos.set(0.3, 1.0, 0.3);
+        tgtFRPos.set(0.3, 1.1, 0.3);
         tgtFRRot.set(-0.5, 0, Math.sin(t*10)*0.5 + 0.5); // Waving
         tgtHeadRot.y = Math.sin(t*2)*0.1;
     }
@@ -280,7 +363,7 @@ export const Cat3D: React.FC<Cat3DProps> = ({ action, position = [0, 0, 0], walk
         tgtBodyPos.y = 0.2;
         tgtHeadPos.y = 0.35;
         tgtHeadRot.x = 0.8;
-        tgtFRPos.set(0.1, 0.3, 0.5);
+        tgtFRPos.set(0.1, 0.4, 0.5);
         tgtFRRot.set(-1.5, 0, 0);
     }
     else if (action === 'scratching') {
@@ -292,7 +375,7 @@ export const Cat3D: React.FC<Cat3DProps> = ({ action, position = [0, 0, 0], walk
     }
 
     // --- LOOK AT CURSOR (Head Only) ---
-    if (lookAtTarget && (action === 'idle' || mode !== 0)) { 
+    if (lookAtTarget && (action === 'idle' || mode !== 0) && action !== 'climbing') { 
         const headWorldPos = new Vector3();
         if(headRef.current) headRef.current.getWorldPosition(headWorldPos);
         const targetDir = lookAtTarget.clone().sub(headWorldPos);
@@ -370,6 +453,10 @@ export const Cat3D: React.FC<Cat3DProps> = ({ action, position = [0, 0, 0], walk
   const hideStatusBubble = action === 'playing_gomoku' || action === 'playing_xiangqi';
   const statusText = (action !== 'idle' && !hideStatusBubble) ? t.status[action as keyof typeof t.status] : null;
 
+  // Calculate bubble Y position based on body height so it follows climbing
+  const bubbleY = (action === 'climbing' && actionTimeRef.current > 1) ? 
+     Math.min(4.6, 1.6 + (actionTimeRef.current - 1) * 1.5) : 1.6;
+
   return (
     <group 
         ref={groupRef} 
@@ -379,7 +466,7 @@ export const Cat3D: React.FC<Cat3DProps> = ({ action, position = [0, 0, 0], walk
     >
       {/* STATUS BUBBLE - Floating HTML */}
       {statusText && (
-          <Html position={[0, 1.6, 0]} center style={{ pointerEvents: 'none' }}>
+          <Html position={[0, bubbleY, 0]} center style={{ pointerEvents: 'none' }}>
               <div className="whitespace-nowrap bg-white/90 backdrop-blur px-3 py-1.5 rounded-full shadow-lg border-2 border-white/50 text-sm font-bold text-gray-700 animate-fade-in-up flex flex-col items-center">
                   <div className="absolute -bottom-1 w-2 h-2 bg-white/90 rotate-45 border-r border-b border-white/50"></div>
                   {statusText}
@@ -397,6 +484,9 @@ export const Cat3D: React.FC<Cat3DProps> = ({ action, position = [0, 0, 0], walk
              <sphereGeometry args={[0.25, 16, 16]} />
              <meshStandardMaterial color="#fff0f5" />
          </mesh>
+
+        {/* HEAD (Attached to Body Group now for relative movement if needed, but keeping separate in main group logic for clarity, just updating position relative to body in code) */}
+        {/* Wait, the refs are siblings. The update logic handles the position relation. */}
       </group>
 
       {/* HEAD */}
@@ -449,12 +539,12 @@ export const Cat3D: React.FC<Cat3DProps> = ({ action, position = [0, 0, 0], walk
         </group>
       </group>
 
-      {/* LEGS */}
+      {/* LEGS - Fixed Pivot Points */}
       <group>
-        <group ref={legFL}><mesh castShadow><capsuleGeometry args={[0.09, 0.35, 8, 16]} />{FurMaterial}</mesh></group>
-        <group ref={legFR}><mesh castShadow><capsuleGeometry args={[0.09, 0.35, 8, 16]} />{FurMaterial}</mesh></group>
-        <group ref={legBL}><mesh castShadow><capsuleGeometry args={[0.09, 0.35, 8, 16]} />{FurMaterial}</mesh></group>
-        <group ref={legBR}><mesh castShadow><capsuleGeometry args={[0.09, 0.35, 8, 16]} />{FurMaterial}</mesh></group>
+        <group ref={legFL}><mesh castShadow position={[0, -0.2, 0]}><capsuleGeometry args={[0.09, 0.35, 8, 16]} />{FurMaterial}</mesh></group>
+        <group ref={legFR}><mesh castShadow position={[0, -0.2, 0]}><capsuleGeometry args={[0.09, 0.35, 8, 16]} />{FurMaterial}</mesh></group>
+        <group ref={legBL}><mesh castShadow position={[0, -0.2, 0]}><capsuleGeometry args={[0.09, 0.35, 8, 16]} />{FurMaterial}</mesh></group>
+        <group ref={legBR}><mesh castShadow position={[0, -0.2, 0]}><capsuleGeometry args={[0.09, 0.35, 8, 16]} />{FurMaterial}</mesh></group>
       </group>
 
       {/* TAIL */}
