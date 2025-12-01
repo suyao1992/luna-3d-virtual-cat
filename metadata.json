@@ -1,0 +1,5 @@
+{
+  "name": "Luna - 3D Virtual AI Cat",
+  "description": "A cozy 3D virtual pet game where you raise Luna, an AI-powered cat. Feed her, play with her, and chat with her using Gemini API.",
+  "requestFramePermissions": []
+}
