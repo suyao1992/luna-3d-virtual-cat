@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Vector3 } from 'three';
@@ -14,6 +15,7 @@ import { GameLoadingScreen } from './components/GameLoadingScreen';
 import { GomokuBoard } from './components/GomokuBoard';
 import { XiangqiBoard } from './components/XiangqiBoard';
 import { Match3Board } from './components/Match3Board';
+import { FishingGame } from './components/FishingGame';
 import { WeatherPanel } from './components/ui/WeatherPanel';
 import { DiscoCamera, ManualFollowCamera } from './components/Cameras';
 
@@ -46,7 +48,7 @@ const App: React.FC = () => {
   // Interaction State
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
-  const [activeGame, setActiveGame] = useState<'gomoku' | 'xiangqi' | 'match3' | null>(null);
+  const [activeGame, setActiveGame] = useState<'gomoku' | 'xiangqi' | 'match3' | 'fishing' | null>(null);
 
   // Easter Eggs
   const [isEscaping, setIsEscaping] = useState(false);
@@ -215,7 +217,9 @@ const App: React.FC = () => {
       } else if (type === 'yoga') {
           performAction('yoga', 6000);
       } else if (type === 'fish') {
-          performAction('fishing', 10000);
+          // Open Fishing Minigame
+          performAction('fishing', -1);
+          setActiveGame('fishing');
       } else if (type === 'climb') {
           performAction('climbing', 8000);
       } else if (type === 'read') {
@@ -352,8 +356,24 @@ const App: React.FC = () => {
                 language={language}
                 isEscaping={isEscaping}
                 onClick={() => {
-                    audioService.playMeow('happy');
-                    setStats(prev => ({ ...prev, happiness: Math.min(100, prev.happiness + 5) }));
+                    if (isEscaping) return;
+                    
+                    const interruptible = ['idle', 'walking', 'wandering', 'sitting', 'standing', 'grooming', 'scratching'].includes(actionRef.current);
+                    
+                    if (interruptible) {
+                        performAction('petting', 5000); // 5 seconds of love
+                        audioService.playMeow('happy');
+                        audioService.playPurr();
+                        setStats(prev => ({ ...prev, happiness: Math.min(100, prev.happiness + 15) }));
+                    } else {
+                        // If sleeping, toggle sleep (wake up)
+                        if (actionRef.current === 'sleeping') {
+                            handleSleep();
+                        } else {
+                            // Busy or non-interruptible
+                            audioService.playMeow('poked');
+                        }
+                    }
                 }}
             />
 
@@ -428,6 +448,15 @@ const App: React.FC = () => {
                 onClose={() => { setActiveGame(null); setAction('idle'); }} 
                 onGameEnd={(score) => {
                     setStats(p => ({ ...p, happiness: Math.min(100, p.happiness + score / 10) }));
+                }}
+                language={language}
+            />
+        )}
+        {(activeGame === 'fishing') && (
+            <FishingGame 
+                onClose={() => { setActiveGame(null); setAction('idle'); }}
+                onCatch={(score) => {
+                    setStats(p => ({ ...p, happiness: Math.min(100, p.happiness + score / 5), hunger: Math.min(100, p.hunger + score / 10) }));
                 }}
                 language={language}
             />

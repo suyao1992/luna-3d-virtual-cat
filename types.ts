@@ -149,6 +149,17 @@ export const TRANSLATIONS = {
       game_over: "Game Over",
       play_again: "Play Again",
       final_score: "Final Score"
+    },
+    fishing: {
+      title: "Gone Fishing",
+      instructions: "Click 'CAST' to start. Wait for the bobber to shake, then click 'REEL'!",
+      cast: "CAST",
+      waiting: "Waiting...",
+      bite: "BITE!",
+      reel: "REEL!",
+      caught: "Caught:",
+      missed: "Got away!",
+      play_again: "Fish Again"
     }
   },
   zh: {
@@ -235,6 +246,17 @@ export const TRANSLATIONS = {
       game_over: "游戏结束",
       play_again: "再玩一次",
       final_score: "最终得分"
+    },
+    fishing: {
+      title: "快乐钓鱼",
+      instructions: "点击 '抛竿' 开始。等待浮标晃动，然后立即点击 '收杆'!",
+      cast: "抛竿",
+      waiting: "等待中...",
+      bite: "咬钩了!",
+      reel: "收杆!",
+      caught: "钓到了:",
+      missed: "鱼跑了!",
+      play_again: "再钓一次"
     }
   },
   jp: {
@@ -321,6 +343,17 @@ export const TRANSLATIONS = {
       game_over: "ゲーム終了",
       play_again: "もう一度遊ぶ",
       final_score: "最終スコア"
+    },
+    fishing: {
+      title: "釣りゲーム",
+      instructions: "「キャスト」を押して開始。ウキが沈んだらすぐに「リール」を押して！",
+      cast: "キャスト",
+      waiting: "待機中...",
+      bite: "食いついた！",
+      reel: "リール！",
+      caught: "釣れた：",
+      missed: "逃げられた！",
+      play_again: "もう一度釣る"
     }
   }
 };

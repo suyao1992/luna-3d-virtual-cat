@@ -1,5 +1,4 @@
 
-
 import React, { useRef, useState, useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Html, Sparkles } from '@react-three/drei';
@@ -158,7 +157,9 @@ export const Cat3D: React.FC<Cat3DProps> = ({ action, position = [0, 0, 0], walk
     let forceOpenEyes = false;
     
     if (action === 'using_litter' && actionT > 1.5 && actionT < 3.5) forceCloseEyes = true; 
-    if ((action === 'eating' || action === 'drinking' || action === 'petting') && Math.sin(t * 8) > 0.2) forceCloseEyes = true; 
+    
+    if (action === 'petting') forceCloseEyes = true;
+    else if ((action === 'eating' || action === 'drinking') && Math.sin(t * 8) > 0.2) forceCloseEyes = true; 
 
     if (action !== 'sleeping' && !forceCloseEyes && Math.random() < 0.005) {
         setBlink(true);
@@ -395,6 +396,31 @@ export const Cat3D: React.FC<Cat3DProps> = ({ action, position = [0, 0, 0], walk
             tgtHeadRot.x = Math.sin(beat * 2) * 0.2;
         }
         tgtTailRot.z = Math.sin(beat * 2) * 0.5;
+    }
+    else if (action === 'petting') {
+        // "Sajiao" - Coquettish / Affectionate rubbing animation
+        
+        // Body: Breathing bounce + slight roll sway
+        tgtBodyPos.y = 0.35 + Math.sin(t * 10) * 0.01; 
+        tgtBodyRot.x = -Math.PI / 2 + 0.1; 
+        tgtBodyRot.z = Math.sin(t * 2) * 0.1; 
+        
+        // Head: Nuzzling motion (tipping back and side)
+        tgtHeadRot.x = -0.5 + Math.sin(t * 3) * 0.15; // Chin up (enjoying)
+        tgtHeadRot.z = Math.sin(t * 2.5) * 0.35; // Tilt side to side
+        tgtHeadRot.y = Math.sin(t * 1.5) * 0.2; // Turn
+        
+        // Paws: Kneading / Air biscuits (Happy cat!)
+        tgtFLPos.y = 0.5 + Math.max(0, Math.sin(t * 5) * 0.15);
+        tgtFLRot.x = -0.8 + Math.max(0, Math.sin(t * 5) * 0.5);
+        
+        tgtFRPos.y = 0.5 + Math.max(0, Math.sin(t * 5 + Math.PI) * 0.15);
+        tgtFRRot.x = -0.8 + Math.max(0, Math.sin(t * 5 + Math.PI) * 0.5);
+        
+        // Tail: Happy high wag
+        tgtTailWrapperPos.y = 0.5;
+        tgtTailRot.x = -0.5;
+        tgtTailRot.z = Math.sin(t * 15) * 0.6;
     }
     else if (action === 'climbing') {
         const climbTime = actionT;
