@@ -1,8 +1,9 @@
 
+
 import React, { useRef, useMemo } from 'react';
 import { Environment as ThreeEnvironment } from '@react-three/drei';
-import { CatAction, WeatherCondition } from '../types';
-import { Vector3, Color } from 'three';
+import { CatAction, WeatherCondition, Language } from '../types';
+import { Vector3, Color, Group } from 'three';
 import { MoonScene } from './environment/scenes/MoonScene';
 import { LivingRoom } from './environment/scenes/LivingRoom';
 import { useFrame } from '@react-three/fiber';
@@ -25,6 +26,14 @@ interface EnvironmentProps {
     timeOfDay: number;
     weather: WeatherCondition;
     onWindowClick: () => void;
+    
+    // Mouse Toy Props
+    mouseRef: React.RefObject<Group>;
+    isMouseActive: boolean;
+    onMouseClick: () => void;
+    
+    // Language
+    language: Language;
 }
 
 export const Environment: React.FC<EnvironmentProps> = ({ 
@@ -42,7 +51,11 @@ export const Environment: React.FC<EnvironmentProps> = ({
     hasPoop,
     timeOfDay,
     weather,
-    onWindowClick
+    onWindowClick,
+    mouseRef,
+    isMouseActive,
+    onMouseClick,
+    language
 }) => {
   const sunLightRef = useRef<any>(null);
   const spotLightRef = useRef<any>(null);
@@ -165,6 +178,10 @@ export const Environment: React.FC<EnvironmentProps> = ({
             timeOfDay={timeOfDay}
             weather={weather}
             onWindowClick={onWindowClick}
+            mouseRef={mouseRef}
+            isMouseActive={isMouseActive}
+            onMouseClick={onMouseClick}
+            language={language}
           />
       )}
     </group>

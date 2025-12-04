@@ -267,6 +267,41 @@ export class AudioService {
       source.stop(t + 0.3);
   }
 
+  playMagicEffect() {
+      this.init();
+      if (!this.ctx || !this.masterGain) return;
+      const t = this.ctx.currentTime;
+
+      // Sparkly Glissando
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(400, t);
+      osc.frequency.exponentialRampToValueAtTime(1200, t + 0.3); // Up
+      osc.frequency.linearRampToValueAtTime(2000, t + 0.6); // High sparkle
+
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(0.3, t + 0.1);
+      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.8);
+
+      // Tremolo for sparkle
+      const lfo = this.ctx.createOscillator();
+      lfo.frequency.value = 15;
+      const lfoGain = this.ctx.createGain();
+      lfoGain.gain.value = 0.5;
+      lfo.connect(lfoGain);
+      lfoGain.connect(gain.gain);
+
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      
+      osc.start(t);
+      lfo.start(t);
+      osc.stop(t + 0.8);
+      lfo.stop(t + 0.8);
+  }
+
   // --- BACKGROUND MUSIC (BGM) ---
 
   toggleBGM() {
@@ -612,10 +647,13 @@ export class AudioService {
     const source = this.ctx.createBufferSource();
     source.buffer = buffer;
 
+    // Add random pitch variation for natural walking sound
+    source.playbackRate.value = 0.9 + Math.random() * 0.2;
+
     // Filter to make it a dull thud/tap
     const filter = this.ctx.createBiquadFilter();
     filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(300, t); 
+    filter.frequency.setValueAtTime(400, t); 
 
     const gain = this.ctx.createGain();
     
@@ -623,10 +661,10 @@ export class AudioService {
     filter.connect(gain);
     gain.connect(this.masterGain);
 
-    // Very short envelope
+    // Envelope - Increased volume for visibility
     gain.gain.setValueAtTime(0, t);
-    gain.gain.linearRampToValueAtTime(0.15, t + 0.01);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+    gain.gain.linearRampToValueAtTime(0.4, t + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
 
     source.start(t);
     source.stop(t + 0.1);
@@ -863,6 +901,28 @@ export class AudioService {
     
     source.start(t);
     source.stop(t + 0.5);
+  }
+
+  playClick() {
+    this.init();
+    if (!this.ctx || !this.masterGain) return;
+    const t = this.ctx.currentTime;
+    
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(1200, t);
+    osc.frequency.exponentialRampToValueAtTime(600, t + 0.1);
+
+    gain.gain.setValueAtTime(0.3, t);
+    gain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    
+    osc.start(t);
+    osc.stop(t + 0.1);
   }
 }
 

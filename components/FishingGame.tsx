@@ -1,53 +1,52 @@
+
 import React, { useState, useEffect, useRef } from 'react';
-import { X, ShipWheel, Fish, Anchor, Trash2, Trophy, AlertCircle } from 'lucide-react';
-import { Language, TRANSLATIONS } from '../types';
+import { X, ShipWheel, AlertCircle } from 'lucide-react';
+import { Language, TRANSLATIONS, ItemId } from '../types';
 import { audioService } from '../services/audio';
+import { SardineVisual, TunaVisual, KoiVisual, GoldenCarpVisual, BootVisual, TinCanVisual } from './ui/FishVisuals';
 
 interface FishingGameProps {
   onClose: () => void;
-  onCatch: (score: number) => void;
+  onCatch: (itemId: string, score: number) => void;
   language: Language;
 }
 
 type GameState = 'idle' | 'waiting' | 'bite' | 'caught' | 'missed';
 
-interface CatchItem {
-    name: string;
-    icon: React.ReactNode;
+interface CatchItemDef {
+    id: ItemId;
     score: number;
     color: string;
     rarity: 'common' | 'rare' | 'legendary' | 'trash';
 }
 
-const ITEMS: CatchItem[] = [
-    { name: 'Sardine', icon: <Fish className="w-8 h-8" />, score: 10, color: 'text-gray-400', rarity: 'common' },
-    { name: 'Tuna', icon: <Fish className="w-10 h-10" />, score: 30, color: 'text-blue-500', rarity: 'common' },
-    { name: 'Koi', icon: <Fish className="w-10 h-10" />, score: 50, color: 'text-orange-500', rarity: 'rare' },
-    { name: 'Golden Carp', icon: <Trophy className="w-12 h-12" />, score: 100, color: 'text-yellow-500', rarity: 'legendary' },
-    { name: 'Old Boot', icon: <Anchor className="w-8 h-8" />, score: 0, color: 'text-brown-500', rarity: 'trash' },
-    { name: 'Tin Can', icon: <Trash2 className="w-8 h-8" />, score: 0, color: 'text-gray-500', rarity: 'trash' },
+// Pure data
+const ITEMS_DATA: CatchItemDef[] = [
+    { id: 'sardine', score: 10, color: 'bg-gray-100', rarity: 'common' },
+    { id: 'tuna', score: 30, color: 'bg-blue-100', rarity: 'common' },
+    { id: 'koi', score: 50, color: 'bg-orange-100', rarity: 'rare' },
+    { id: 'golden_carp', score: 100, color: 'bg-yellow-100', rarity: 'legendary' },
+    { id: 'old_boot', score: 0, color: 'bg-stone-200', rarity: 'trash' },
+    { id: 'tin_can', score: 0, color: 'bg-gray-200', rarity: 'trash' },
 ];
 
 export const FishingGame: React.FC<FishingGameProps> = ({ onClose, onCatch, language }) => {
   const [gameState, setGameState] = useState<GameState>('idle');
-  const [caughtItem, setCaughtItem] = useState<CatchItem | null>(null);
-  const [reactionTime, setReactionTime] = useState(0);
+  const [caughtItemId, setCaughtItemId] = useState<ItemId | null>(null);
   
   const timerRef = useRef<number | null>(null);
   const biteTimeoutRef = useRef<number | null>(null);
   
   const t = TRANSLATIONS[language].fishing;
 
-  // --- GAME LOGIC ---
+  const getCaughtItemDef = () => caughtItemId ? ITEMS_DATA.find(i => i.id === caughtItemId) : null;
+  const caughtItem = getCaughtItemDef();
 
   const startFishing = () => {
     setGameState('waiting');
-    setCaughtItem(null);
+    setCaughtItemId(null);
     audioService.playSplash();
-
-    // Random wait time between 2s and 6s
     const waitTime = 2000 + Math.random() * 4000;
-
     timerRef.current = window.setTimeout(() => {
         triggerBite();
     }, waitTime);
@@ -55,13 +54,10 @@ export const FishingGame: React.FC<FishingGameProps> = ({ onClose, onCatch, lang
 
   const triggerBite = () => {
       setGameState('bite');
-      audioService.playBoing(); // Use Boing as Bite sound or implement playSplash
-      
-      // Player has limited time to react (e.g., 800ms - 1200ms)
+      audioService.playBoing();
       const difficultyWindow = 1000; 
-      
       biteTimeoutRef.current = window.setTimeout(() => {
-          if (gameState === 'bite') { // If user hasn't clicked yet
+          if (gameState === 'bite') { 
               handleMiss();
           }
       }, difficultyWindow);
@@ -69,46 +65,42 @@ export const FishingGame: React.FC<FishingGameProps> = ({ onClose, onCatch, lang
 
   const handleReel = () => {
       if (gameState === 'waiting') {
-          // Pulled too early
           handleMiss();
           if (timerRef.current) clearTimeout(timerRef.current);
       } else if (gameState === 'bite') {
-          // Success!
           if (biteTimeoutRef.current) clearTimeout(biteTimeoutRef.current);
           handleCatch();
       }
   };
 
   const handleCatch = () => {
-      // Determine what was caught based on random weights
       const rand = Math.random();
       let item;
       
-      if (rand > 0.95) item = ITEMS.find(i => i.rarity === 'legendary');
-      else if (rand > 0.8) item = ITEMS.find(i => i.rarity === 'rare');
-      else if (rand > 0.3) item = ITEMS.filter(i => i.rarity === 'common')[Math.floor(Math.random() * 2)]; // Random common
-      else item = ITEMS.filter(i => i.rarity === 'trash')[Math.floor(Math.random() * 2)];
+      if (rand > 0.95) item = ITEMS_DATA.find(i => i.rarity === 'legendary');
+      else if (rand > 0.8) item = ITEMS_DATA.find(i => i.rarity === 'rare');
+      else if (rand > 0.3) item = ITEMS_DATA.filter(i => i.rarity === 'common')[Math.floor(Math.random() * 2)];
+      else item = ITEMS_DATA.filter(i => i.rarity === 'trash')[Math.floor(Math.random() * 2)];
 
-      if (!item) item = ITEMS[0]; // Fallback
+      if (!item) item = ITEMS_DATA[0];
 
-      setCaughtItem(item);
+      setCaughtItemId(item.id);
       setGameState('caught');
       
       if (item.score > 0) {
         audioService.playMeow('happy');
-        onCatch(item.score);
+        onCatch(item.id, item.score);
       } else {
         audioService.playMeow('grumpy');
+        onCatch(item.id, item.score);
       }
   };
 
   const handleMiss = () => {
       setGameState('missed');
-      setCaughtItem(null);
-      // audioService.playFail(); 
+      setCaughtItemId(null);
   };
 
-  // Cleanup
   useEffect(() => {
       return () => {
           if (timerRef.current) clearTimeout(timerRef.current);
@@ -120,7 +112,6 @@ export const FishingGame: React.FC<FishingGameProps> = ({ onClose, onCatch, lang
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fade-in select-none">
        <div className="bg-[#e0f7fa] p-6 rounded-3xl shadow-2xl border-4 border-[#4dd0e1] w-full max-w-md flex flex-col items-center relative overflow-hidden">
            
-           {/* Header */}
            <div className="flex justify-between w-full items-center mb-6 z-10">
                 <h2 className="text-2xl font-bold text-[#006064] flex items-center gap-2">
                     <ShipWheel className="w-8 h-8" /> {t.title}
@@ -130,20 +121,15 @@ export const FishingGame: React.FC<FishingGameProps> = ({ onClose, onCatch, lang
                 </button>
            </div>
 
-           {/* Scene */}
            <div className="w-full h-64 bg-gradient-to-b from-sky-300 to-blue-500 rounded-2xl relative shadow-inner overflow-hidden mb-6 cursor-pointer"
                 onClick={() => {
                     if (gameState === 'idle' || gameState === 'caught' || gameState === 'missed') startFishing();
                     else handleReel();
                 }}
            >
-               {/* Sun/Reflections */}
                <div className="absolute top-4 right-4 w-12 h-12 bg-yellow-300 rounded-full blur-xl opacity-60"></div>
-
-               {/* Water Surface Animation */}
                <div className="absolute bottom-0 w-full h-1/2 bg-blue-600/30 backdrop-blur-[2px] animate-wave"></div>
 
-               {/* Bobber */}
                <div className={`
                     absolute left-1/2 -translate-x-1/2 transition-all duration-300
                     ${gameState === 'idle' ? 'top-[40%] opacity-50' : ''}
@@ -156,25 +142,29 @@ export const FishingGame: React.FC<FishingGameProps> = ({ onClose, onCatch, lang
                    <div className="w-6 h-6 bg-white rounded-b-full border-2 border-white/50 border-t-0"></div>
                </div>
 
-               {/* Alert Icon */}
                {gameState === 'bite' && (
                    <div className="absolute top-[40%] left-1/2 -translate-x-1/2 text-red-500 animate-ping">
                        <AlertCircle className="w-16 h-16" fill="white" />
                    </div>
                )}
 
-               {/* Catch Display */}
                {gameState === 'caught' && caughtItem && (
                    <div className="absolute inset-0 flex flex-col items-center justify-center animate-bounce-in bg-white/30 backdrop-blur-sm">
-                        <div className={`p-6 rounded-full bg-white shadow-xl mb-2 ${caughtItem.color}`}>
-                            {caughtItem.icon}
+                        <div className={`w-32 h-32 p-4 rounded-full shadow-2xl mb-4 ${caughtItem.color} border-4 border-white`}>
+                            {caughtItem.id === 'sardine' && <SardineVisual />}
+                            {caughtItem.id === 'tuna' && <TunaVisual />}
+                            {caughtItem.id === 'koi' && <KoiVisual />}
+                            {caughtItem.id === 'golden_carp' && <GoldenCarpVisual />}
+                            {caughtItem.id === 'old_boot' && <BootVisual />}
+                            {caughtItem.id === 'tin_can' && <TinCanVisual />}
                         </div>
-                        <h3 className="text-2xl font-black text-white drop-shadow-md">{caughtItem.name}</h3>
-                        <p className="text-white font-bold drop-shadow-md">+{caughtItem.score} pts</p>
+                        <h3 className="text-2xl font-black text-white drop-shadow-md stroke-black" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
+                            {t.fish_names[caughtItem.id]}
+                        </h3>
+                        <p className="text-white font-bold drop-shadow-md text-xl">+{caughtItem.score} pts</p>
                    </div>
                )}
 
-               {/* Miss Display */}
                {gameState === 'missed' && (
                    <div className="absolute inset-0 flex flex-col items-center justify-center animate-fade-in bg-black/20 backdrop-blur-sm">
                         <div className="text-6xl mb-2">💦</div>
@@ -183,7 +173,6 @@ export const FishingGame: React.FC<FishingGameProps> = ({ onClose, onCatch, lang
                )}
            </div>
 
-           {/* Controls / Instructions */}
            <div className="text-center h-12">
                {gameState === 'idle' && (
                    <button onClick={startFishing} className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-8 rounded-full shadow-lg text-lg transition-transform active:scale-95">

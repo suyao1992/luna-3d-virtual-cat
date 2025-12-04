@@ -18,8 +18,15 @@ export const StatsBar: React.FC<StatsBarProps> = ({ stats, language }) => {
     };
 
     return (
-        <div className="pointer-events-auto bg-white/70 backdrop-blur-md p-3 rounded-2xl border border-white/50 shadow-lg w-full max-w-2xl animate-fade-in-down">
-            <div className="grid grid-cols-5 gap-2 md:gap-4">
+        <div className="pointer-events-auto bg-white/70 backdrop-blur-md p-3 rounded-2xl border border-white/50 shadow-lg w-full max-w-2xl animate-fade-in-down flex gap-4">
+            
+            {/* Level Badge Mobile Only (Desktop shows in profile button) */}
+            <div className="md:hidden flex flex-col justify-center items-center bg-indigo-100 rounded-lg px-2 min-w-[3rem]">
+                <span className="text-[9px] font-bold text-indigo-400 uppercase">LVL</span>
+                <span className="text-xl font-black text-indigo-600 leading-none">{stats.level}</span>
+            </div>
+
+            <div className="grid grid-cols-5 gap-2 md:gap-4 flex-1">
                 <div>
                     <div className="flex items-center gap-1 mb-1">
                         <Fish className="w-3 h-3 md:w-4 md:h-4 text-orange-600" />
