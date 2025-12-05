@@ -1,6 +1,4 @@
 
-
-
 import React from 'react';
 import { Float, RoundedBox } from '@react-three/drei';
 import { DoubleSide } from 'three';
@@ -35,10 +33,10 @@ export const CloudChandelier = () => {
   );
 };
 
-export const SoftCatTree = ({ onClick }: { onClick?: () => void }) => {
+export const SoftCatTree = ({ position = [8, 0, -6], onClick }: { position?: [number, number, number], onClick?: () => void }) => {
     return (
         <group 
-            position={[14, 0, -4]} 
+            position={position} 
             rotation={[0, -0.5, 0]}
             onClick={(e) => { e.stopPropagation(); onClick?.(); }}
             onPointerOver={() => document.body.style.cursor = 'pointer'}
@@ -236,26 +234,11 @@ export const PawRug = ({ onClick, onPointerMove }: any) => {
 };
 
 export const VegetableGarden = ({ position, onClick }: { position?: [number, number, number], onClick?: () => void }) => {
-    // Inject garden state via userData trick or Context (Here using userData from parent scene for demonstration or just default visuals if not provided)
-    // NOTE: In a real refactor, we would pass props directly from Environment.
-    // For now, we will render a static version that *looks* right, but assumes the parent handles the state logic overlay.
-    // However, to make it visually update, we need props. 
-    // Let's assume the parent passes data via a React Context or we just read from a global store if this was larger.
-    // Since we are limited to file edits, and I cannot easily wrap the whole app in a context provider in one go without touching many files,
-    // I will use a simple approach: We will read the `gardenSlots` from the scene's userData if available (a hack for Three.js trees) OR just accept it as a prop.
-    // I'll update Environment to pass it down.
-    
-    // BUT WAIT: Furniture.tsx is imported in LivingRoom.tsx. I can update LivingRoom to pass props.
-    // I will add `slots` prop to VegetableGarden.
-    
     return (
-        // We need the data. I'll implement a "dumb" component here that relies on props passed from LivingRoom.
-        // See updated LivingRoom.tsx below for how it gets passed.
         <VegetableGardenWithProps position={position} onClick={onClick} />
     )
 }
 
-// Actual component implementation
 export const VegetableGardenWithProps = ({ position, onClick, slots }: { position?: [number, number, number], onClick?: () => void, slots?: GardenSlot[] }) => {
     
     // Default slots if not provided (fallback)

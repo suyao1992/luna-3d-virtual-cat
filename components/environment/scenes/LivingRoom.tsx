@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { ContactShadows, RoundedBox, Html } from '@react-three/drei';
@@ -197,7 +198,7 @@ export const LivingRoom: React.FC<LivingRoomProps> = ({
              {/* Items */}
              <CloudChandelier />
              <CatTV language={language} />
-             <SoftCatTree onClick={() => onInteract?.('climbing')} />
+             <SoftCatTree position={[8, 0, -6]} onClick={() => onInteract?.('climbing')} />
              <CloudSofa onClick={() => onInteract?.('reading')} />
              <CoffeeTable position={[6.5, 0, 6]} onClick={() => onInteract?.('catnip_high')} />
              
